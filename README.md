@@ -19,7 +19,7 @@
 
 ## Problem Statement
 
-### Healthcare Data Management Challenges
+### Healthcare Data Management Challenge
 - **Fragmented Health Records**: Patients struggle to maintain centralized health records across multiple healthcare providers
 - **Inefficient Doctor-Patient Communication**: Lack of streamlined consultation request and approval system
 - **Manual Health Monitoring**: No automated tracking of vital signs trends and health patterns
