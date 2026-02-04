@@ -16,10 +16,10 @@ const patientRoutes = require("./routes/patientRoutes");
 dotenv.config();
 const app = express();
 
-// ✅ Configure CORS to allow your frontend URL
+// ✅ Configure CORS for development (allow all origins for testing)
 app.use(
   cors({
-    origin: "https://cloudvault-frontend-97y3.onrender.com", // 🔁 Verify this URL matches your deployed Render FRONTEND URL
+    origin: true, // Allow all origins during development
     credentials: true,
   })
 );
@@ -27,6 +27,14 @@ app.use(
 // ✅ Middleware
 app.use(express.json());
 app.use(fileUpload({ useTempFiles: true }));
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
 
 // ✅ Connect to MongoDB
 mongoose
@@ -46,7 +54,7 @@ app.use("/api/consultations", consultationRoutes);
 app.use("/api/patients", patientRoutes); // ✅ NEW: Add patient routes to the app
 
 // ✅ Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

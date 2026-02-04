@@ -6,18 +6,74 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const router = express.Router();
 
+
+
+// Validation functions
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+  if (password.length < 8) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  if (!/[!@#$%^&*]/.test(password)) return false;
+  return true;
+}
+
+function validateName(name) {
+  return name && name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name.trim());
+}
+
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return input;
+  return input.trim().replace(/<script[^>]*>.*?<\/script>/gi, '').replace(/[<>"'&]/g, '');
+}
+
 // Register
 router.post("/register", async (req, res) => {
-  const { name, email, password, role, specialty } = req.body; // Added specialty
+  const { name, email, password, role, specialty } = req.body;
+  
+  // Input validation
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+  
+  if (!validateName(name)) {
+    return res.status(400).json({ error: "Name must be at least 2 characters and contain only letters and spaces." });
+  }
+  
+  if (!validateEmail(email)) {
+    return res.status(400).json({ error: "Please provide a valid email address." });
+  }
+  
+  if (!validatePassword(password)) {
+    return res.status(400).json({ error: "Password must be at least 8 characters with uppercase, lowercase, number, and special character." });
+  }
+  
+  if (!['patient', 'doctor'].includes(role)) {
+    return res.status(400).json({ error: "Role must be either 'patient' or 'doctor'." });
+  }
+  
+  if (role === 'doctor' && (!specialty || specialty.trim().length < 2)) {
+    return res.status(400).json({ error: "Specialty is required for doctors and must be at least 2 characters." });
+  }
+  
   try {
     const hashed = await bcrypt.hash(password, 10);
-    const userData = { name, email, password: hashed, role };
+    const userData = { 
+      name: sanitizeInput(name), 
+      email: sanitizeInput(email.toLowerCase()), 
+      password: hashed, 
+      role 
+    };
     if (role === "doctor" && specialty) {
-      // Include specialty for doctors
-      userData.specialty = specialty;
+      userData.specialty = sanitizeInput(specialty);
     }
     const user = await User.create(userData);
-    res.status(201).json({ message: "User created" });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     if (error.code === 11000) {
       // Duplicate key error

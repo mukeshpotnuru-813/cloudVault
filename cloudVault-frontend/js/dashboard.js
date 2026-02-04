@@ -1,6 +1,6 @@
 /* START OF FILE dashboard.js */
 
-const backendURL = "http://localhost:5000"; // 🔁 Replace with your actual Render backend URL
+const backendURL = "http://localhost:3001"; // 🔁 Replace with your actual Render backend URL
 
 const token = localStorage.getItem("token");
 const userRole = localStorage.getItem("userRole");
@@ -347,14 +347,72 @@ async function renderPatientDashboard(container) {
 
 function attachPatientEventListeners() {
   // Vitals Form Submit
+  // Vitals validation functions
+  function validateBloodPressure(bp) {
+    const bpRegex = /^(\d{1,3})\/(\d{1,3})$/;
+    const match = bp.match(bpRegex);
+    if (!match) return { valid: false, message: "Blood pressure must be in format 'systolic/diastolic' (e.g., 120/80)" };
+    
+    const systolic = parseInt(match[1]);
+    const diastolic = parseInt(match[2]);
+    
+    if (systolic < 70 || systolic > 250) {
+      return { valid: false, message: "Systolic pressure must be between 70-250 mmHg" };
+    }
+    if (diastolic < 40 || diastolic > 150) {
+      return { valid: false, message: "Diastolic pressure must be between 40-150 mmHg" };
+    }
+    if (systolic <= diastolic) {
+      return { valid: false, message: "Systolic pressure must be higher than diastolic pressure" };
+    }
+    
+    return { valid: true };
+  }
+  
+  function validateSugar(sugar) {
+    const sugarNum = parseInt(sugar);
+    if (isNaN(sugarNum) || sugarNum < 20 || sugarNum > 600) {
+      return { valid: false, message: "Sugar level must be a number between 20-600 mg/dL" };
+    }
+    return { valid: true };
+  }
+  
+  function validateHeartRate(hr) {
+    const hrNum = parseInt(hr);
+    if (isNaN(hrNum) || hrNum < 30 || hrNum > 220) {
+      return { valid: false, message: "Heart rate must be a number between 30-220 bpm" };
+    }
+    return { valid: true };
+  }
+
   const vitalsForm = document.getElementById("vitalsForm");
   if (vitalsForm) {
     vitalsForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const bp = document.getElementById("bp").value;
-      const sugar = document.getElementById("sugar").value;
-      const hr = document.getElementById("hr").value;
+      const bp = document.getElementById("bp").value.trim();
+      const sugar = document.getElementById("sugar").value.trim();
+      const hr = document.getElementById("hr").value.trim();
       const submitBtn = vitalsForm.querySelector(".btn-primary");
+      
+      // Validate vitals
+      const bpValidation = validateBloodPressure(bp);
+      if (!bpValidation.valid) {
+        showNotification(bpValidation.message, "error");
+        return;
+      }
+      
+      const sugarValidation = validateSugar(sugar);
+      if (!sugarValidation.valid) {
+        showNotification(sugarValidation.message, "error");
+        return;
+      }
+      
+      const hrValidation = validateHeartRate(hr);
+      if (!hrValidation.valid) {
+        showNotification(hrValidation.message, "error");
+        return;
+      }
+      
       setButtonLoading(submitBtn, true);
 
       try {
