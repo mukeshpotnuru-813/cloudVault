@@ -26,7 +26,11 @@ app.use(
 
 // ✅ Middleware
 app.use(express.json());
-app.use(fileUpload({ useTempFiles: true }));
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  abortOnLimit: true,
+  responseOnLimit: "File size limit exceeded"
+}));
 
 // Debug middleware to log all requests
 // app.use((req, res, next) => {

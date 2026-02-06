@@ -11,25 +11,52 @@ const s3 = new AWS.S3({
 });
 
 router.post("/upload", auth, async (req, res) => {
-  const file = req.files.file;
-  const s3Key = `${uuidv4()}-${file.name}`;
-  const upload = await s3
-    .upload({
-      Bucket: process.env.S3_BUCKET,
-      Key: s3Key,
-      Body: file.data,
-      ContentType: file.mimetype,
-    })
-    .promise();
+  try {
+    // Validate file exists
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-  const newFile = await File.create({
-    userId: req.user.userId,
-    fileName: file.name,
-    s3Key,
-    fileUrl: upload.Location,
-  });
+    const file = req.files.file;
+    
+    // Validate file size (additional check)
+    if (file.size > 50 * 1024 * 1024) { // 50MB
+      return res.status(400).json({ error: "File too large. Maximum size is 50MB" });
+    }
 
-  res.json({ message: "File uploaded", file: newFile });
+    // Validate file type (basic check)
+    const allowedTypes = ['image/', 'application/pdf', 'text/', 'application/msword', 'application/vnd.openxmlformats'];
+    const isValidType = allowedTypes.some(type => file.mimetype.startsWith(type));
+    if (!isValidType) {
+      return res.status(400).json({ error: "File type not allowed" });
+    }
+
+    const s3Key = `${uuidv4()}-${file.name}`;
+    
+    // Upload directly to S3 using file buffer
+    const upload = await s3
+      .upload({
+        Bucket: process.env.S3_BUCKET,
+        Key: s3Key,
+        Body: file.data, // This is the file buffer in memory
+        ContentType: file.mimetype,
+        ServerSideEncryption: 'AES256' // Add encryption
+      })
+      .promise();
+
+    // Save file record to database
+    const newFile = await File.create({
+      userId: req.user.userId,
+      fileName: file.name,
+      s3Key,
+      fileUrl: upload.Location,
+    });
+
+    res.json({ message: "File uploaded successfully", file: newFile });
+  } catch (error) {
+    console.error("File upload error:", error);
+    res.status(500).json({ error: "Failed to upload file" });
+  }
 });
 
 router.get("/my", auth, async (req, res) => {
