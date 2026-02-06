@@ -71,6 +71,74 @@ function setButtonLoading(button, isLoading) {
 }
 // --- End Utility Functions ---
 
+// --- File Management Functions ---
+async function deleteFile(fileId, buttonElement) {
+  if (!confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const originalText = buttonElement.innerHTML;
+    buttonElement.innerHTML = '⏳';
+    buttonElement.disabled = true;
+
+    const res = await fetch(`${backendURL}/api/files/${fileId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      showNotification('File deleted successfully!', 'success');
+      // Remove the file item from the DOM
+      const fileItem = buttonElement.closest('.file-item');
+      if (fileItem) {
+        fileItem.remove();
+      }
+      // Refresh the files list to ensure consistency
+      await refreshFiles();
+    } else {
+      showNotification(data.error || 'Failed to delete file.', 'error');
+      buttonElement.innerHTML = originalText;
+      buttonElement.disabled = false;
+    }
+  } catch (err) {
+    console.error('Delete file error:', err);
+    showNotification('Network error. Could not delete file.', 'error');
+    buttonElement.innerHTML = originalText;
+    buttonElement.disabled = false;
+  }
+}
+
+// Make deleteFile function available globally for onclick handlers
+window.deleteFile = deleteFile;
+
+async function refreshFiles() {
+  try {
+    const res = await fetch(`${backendURL}/api/files/my`, {
+      method: 'GET',
+      headers: {
+        'Authorization': token,
+      }
+    });
+    
+    if (res.ok) {
+      const files = await res.json();
+      const filesList = document.getElementById('filesList');
+      if (filesList) {
+        displayFiles(files, filesList);
+      }
+    }
+  } catch (err) {
+    console.error('Error refreshing files:', err);
+  }
+}
+// --- End File Management Functions ---
+
 // --- Authentication & Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
   if (!token || !userId || !userRole) {
@@ -152,14 +220,19 @@ function displayFiles(files, container) {
     .map(
       (file) => `
         <div class="file-item">
-          <a href="${file.fileUrl}" target="_blank" download="${
+          <div class="file-info">
+            <a href="${file.fileUrl}" target="_blank" download="${
         file.fileName
       }" class="file-link">
-            <span class="file-icon">📄</span> ${file.fileName}
-          </a>
-          <span class="file-date">${new Date(
-            file.createdAt
-          ).toLocaleString()}</span>
+              <span class="file-icon">📄</span> ${file.fileName}
+            </a>
+            <span class="file-date">${new Date(
+              file.createdAt
+            ).toLocaleString()}</span>
+          </div>
+          <button class="btn-delete" onclick="deleteFile('${file._id}', this)" title="Delete file">
+            <span class="delete-icon">🗑️ Delete</span>
+          </button>
         </div>
       `
     )

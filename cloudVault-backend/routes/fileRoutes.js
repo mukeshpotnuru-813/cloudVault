@@ -39,4 +39,31 @@ router.get("/my", auth, async (req, res) => {
   res.json(files);
 });
 
+router.delete("/:fileId", auth, async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const file = await File.findOne({ _id: fileId, userId: req.user.userId });
+    
+    if (!file) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // Delete from S3
+    await s3
+      .deleteObject({
+        Bucket: process.env.S3_BUCKET,
+        Key: file.s3Key,
+      })
+      .promise();
+
+    // Delete from database
+    await File.findByIdAndDelete(fileId);
+
+    res.json({ message: "File deleted successfully" });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ error: "Failed to delete file" });
+  }
+});
+
 module.exports = router;
