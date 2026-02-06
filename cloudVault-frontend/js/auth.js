@@ -1,4 +1,4 @@
-const backendURL = "http://localhost:3001"; // 🔁 Ensure this matches your live backend URL
+const backendURL = "https://cloudvault-backend-gwla.onrender.com"; // 🔁 Ensure this matches your live backend URL
 
 function showNotification(message, type = "success") {
   const container = document.getElementById("notification-container");
