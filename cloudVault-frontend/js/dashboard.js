@@ -1,6 +1,6 @@
 /* START OF FILE dashboard.js */
 
-const backendURL = "http://localhost:3001"; // 🔁 Replace with your actual Render backend URL
+const backendURL = "https://cloudvault-backend-gwla.onrender.com"; // 🔁 Replace with your actual Render backend URL
 
 const token = localStorage.getItem("token");
 const userRole = localStorage.getItem("userRole");
